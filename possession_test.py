@@ -153,11 +153,14 @@ while True:
                 closest_team = team
 
         if closest_dist < POSSESSION_DIST:
-            loose_count += 1
-        else:
-            possession_counts[possessor] += 1
+            possessor = int(closest_team)
 
-        timeline.append({"frame": frame_index, "team": possessor})
+    if possessor is None:
+        loose_count += 1
+    else:
+        possession_counts[possessor] += 1
+
+    timeline.append({"frame": frame_index, "team": possessor})
         
     cv2.imshow("possession_test", frame)
     if cv2.waitKey(25) & 0xFF == ord('q'):
