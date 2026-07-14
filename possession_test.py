@@ -5,7 +5,7 @@ from sklearn.cluster import KMeans
 
 def get_team_colour(frame, box):
     x1, y1, x2, y2 = map(int, box.xyxy[0])
-    torso_y2 = y1 + int((y2-y1), * 0.5)
+    torso_y2 = y1 + int((y2-y1) * 0.5)
     torso = frame[y1:torso_y2, x1:x2]
 
     hsv = cv2.cvtColor(torso, cv2.COLOR_BGR2HSV)
@@ -15,6 +15,11 @@ def get_team_colour(frame, box):
     not_green_mask = cv2.bitwise_not(green_mask)
 
     return cv2.mean(torso, mask=not_green_mask)[:3]
+
+def get_feet_point(box):
+    x1, y1, x2, y2 = map(int, box.xyxy[0])
+    return ((x1 + x2) / 2, y2)
+
 
 video_path = "data/match.mp4"
 model = YOLO("yolov8n.pt")
@@ -34,13 +39,14 @@ kmeans.fit(np.array(first_colours))
 cap.release()
 cap = cv2.VideoCapture(video_path)
 
-
+frame_index = 0
 while True:
     success, frame = cap.read()
 
     if not success:
         break
-
+    
+    frame_index+= 1
 
     results = model.track(frame, persist=True, conf=0.15, imgsz=1280)
 
@@ -72,5 +78,28 @@ while True:
         if cv2.waitKey(25) & 0xFF == ord('q'):
             break
 
+
+    ball_point = None
+    player_points = []
+
+    for box in results[0].boxes:
+        class_id = int(box.cls[0])
+        if class_id == 32:
+            ball_point = get_feet_point(box)
+        elif class_id == 0:
+            color = get_team_colour(frame, box)
+            team = kmeans.predict([colour])[0]
+
+    player_points.append((get_feet_point(box), team))
+
+    if ball_point is not None and player_points:
+        closest_team = None
+        closest_dist = None
+        for point, team in player_points:
+            dist = np.linalg.norm(np.array(point) - np.array(ball_point))
+            if closest_dist is None or dist < closest_dist:
+                closest_dist = dist
+                closest_team = team
+        print(f"frame {frame_index}: closest team {closest_team}, distance {closest_dist:.1f}")     
 cap.release()
 cv2.destroyAllWindows()
