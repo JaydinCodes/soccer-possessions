@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from ultralytics import YOLO
+from sklearn.cluster import KMeans
 
 video_path = "data/match.mp4"
 cap = cv2.VideoCapture(video_path)
@@ -9,6 +10,9 @@ cap.release()
 
 model = YOLO("yolov8n.pt")
 results = model(frame, conf=0.15, imgsz=1280)
+
+positions = []
+colours = []
 
 for box in results[0].boxes:
     class_id = int(box.cls[0])
@@ -27,4 +31,20 @@ for box in results[0].boxes:
     not_green_mask = cv2.bitwise_not(green_mask)
     
     mean_color = cv2.mean(torso, mask=not_green_mask)
-    print(f"player at ({x1},{y1}): mean BGR = {mean_color[:3]}")
+    
+    positions.append((x1,y1,x2,y2))
+    colours.append(mean_color)
+
+
+colours = np.array(colours)
+kmeans = KMeans(n_clusters=2, n_init=10)
+team_labels = kmeans.fit_predict(colours)
+
+
+for (x1,y1,x2,y2), team in zip(positions, team_labels):
+    colour = (0, 255, 255) if team == 0 else (255, 0, 255)
+    cv2.rectangle(frame, (x1, y1), (x2, y2), colour, 2)
+
+cv2.imshow("teams", frame)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
