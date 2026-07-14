@@ -1,0 +1,311 @@
+{
+  "summary": {
+    "team_a_pct": 100.0,
+    "team_b_pct": 0.0,
+    "team_a_frames": 3,
+    "team_b_frames": 0,
+    "loose_frames": 72
+  },
+  "timeline": [
+    {
+      "frame": 10,
+      "team": null
+    },
+    {
+      "frame": 20,
+      "team": null
+    },
+    {
+      "frame": 30,
+      "team": null
+    },
+    {
+      "frame": 40,
+      "team": null
+    },
+    {
+      "frame": 50,
+      "team": null
+    },
+    {
+      "frame": 60,
+      "team": null
+    },
+    {
+      "frame": 70,
+      "team": null
+    },
+    {
+      "frame": 80,
+      "team": null
+    },
+    {
+      "frame": 90,
+      "team": null
+    },
+    {
+      "frame": 100,
+      "team": null
+    },
+    {
+      "frame": 110,
+      "team": null
+    },
+    {
+      "frame": 120,
+      "team": null
+    },
+    {
+      "frame": 130,
+      "team": null
+    },
+    {
+      "frame": 140,
+      "team": null
+    },
+    {
+      "frame": 150,
+      "team": null
+    },
+    {
+      "frame": 160,
+      "team": null
+    },
+    {
+      "frame": 170,
+      "team": null
+    },
+    {
+      "frame": 180,
+      "team": null
+    },
+    {
+      "frame": 190,
+      "team": null
+    },
+    {
+      "frame": 200,
+      "team": 0
+    },
+    {
+      "frame": 210,
+      "team": 0
+    },
+    {
+      "frame": 220,
+      "team": null
+    },
+    {
+      "frame": 230,
+      "team": null
+    },
+    {
+      "frame": 240,
+      "team": null
+    },
+    {
+      "frame": 250,
+      "team": null
+    },
+    {
+      "frame": 260,
+      "team": null
+    },
+    {
+      "frame": 270,
+      "team": null
+    },
+    {
+      "frame": 280,
+      "team": null
+    },
+    {
+      "frame": 290,
+      "team": null
+    },
+    {
+      "frame": 300,
+      "team": null
+    },
+    {
+      "frame": 310,
+      "team": null
+    },
+    {
+      "frame": 320,
+      "team": null
+    },
+    {
+      "frame": 330,
+      "team": null
+    },
+    {
+      "frame": 340,
+      "team": null
+    },
+    {
+      "frame": 350,
+      "team": null
+    },
+    {
+      "frame": 360,
+      "team": null
+    },
+    {
+      "frame": 370,
+      "team": null
+    },
+    {
+      "frame": 380,
+      "team": null
+    },
+    {
+      "frame": 390,
+      "team": 0
+    },
+    {
+      "frame": 400,
+      "team": null
+    },
+    {
+      "frame": 410,
+      "team": null
+    },
+    {
+      "frame": 420,
+      "team": null
+    },
+    {
+      "frame": 430,
+      "team": null
+    },
+    {
+      "frame": 440,
+      "team": null
+    },
+    {
+      "frame": 450,
+      "team": null
+    },
+    {
+      "frame": 460,
+      "team": null
+    },
+    {
+      "frame": 470,
+      "team": null
+    },
+    {
+      "frame": 480,
+      "team": null
+    },
+    {
+      "frame": 490,
+      "team": null
+    },
+    {
+      "frame": 500,
+      "team": null
+    },
+    {
+      "frame": 510,
+      "team": null
+    },
+    {
+      "frame": 520,
+      "team": null
+    },
+    {
+      "frame": 530,
+      "team": null
+    },
+    {
+      "frame": 540,
+      "team": null
+    },
+    {
+      "frame": 550,
+      "team": null
+    },
+    {
+      "frame": 560,
+      "team": null
+    },
+    {
+      "frame": 570,
+      "team": null
+    },
+    {
+      "frame": 580,
+      "team": null
+    },
+    {
+      "frame": 590,
+      "team": null
+    },
+    {
+      "frame": 600,
+      "team": null
+    },
+    {
+      "frame": 610,
+      "team": null
+    },
+    {
+      "frame": 620,
+      "team": null
+    },
+    {
+      "frame": 630,
+      "team": null
+    },
+    {
+      "frame": 640,
+      "team": null
+    },
+    {
+      "frame": 650,
+      "team": null
+    },
+    {
+      "frame": 660,
+      "team": null
+    },
+    {
+      "frame": 670,
+      "team": null
+    },
+    {
+      "frame": 680,
+      "team": null
+    },
+    {
+      "frame": 690,
+      "team": null
+    },
+    {
+      "frame": 700,
+      "team": null
+    },
+    {
+      "frame": 710,
+      "team": null
+    },
+    {
+      "frame": 720,
+      "team": null
+    },
+    {
+      "frame": 730,
+      "team": null
+    },
+    {
+      "frame": 740,
+      "team": null
+    },
+    {
+      "frame": 750,
+      "team": null
+    }
+  ]
+}

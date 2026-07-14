@@ -70,7 +70,7 @@ last_ball_point = None
 frames_since_ball = 0
 MAX_JUMP_PER_FRAME = 150   # px the ball can plausibly move in ONE frame
 MAX_COAST = 15       # after this many rejected frames, allow re-acquiring anywhere
-
+PROCESS_EVERY = 10
 POSSESSION_DIST = 70
 possession_counts = { 0 :0, 1:0}
 loose_count = 0
@@ -81,8 +81,11 @@ while True:
     if not success:
         break
 
-    results = model.track(frame, persist=True, conf=0.15, imgsz=1280)
+   
     frame_index += 1
+    if frame_index % PROCESS_EVERY != 0:
+        continue
+    results = model.track(frame, persist=True, conf=0.15, imgsz=1280)
     for box in results[0].boxes:
         class_id = int(box.cls[0])
         x1, y1, x2, y2 = map(int, box.xyxy[0])
@@ -163,7 +166,7 @@ while True:
     timeline.append({"frame": frame_index, "team": possessor})
         
     cv2.imshow("possession_test", frame)
-    if cv2.waitKey(25) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
