@@ -1,0 +1,1 @@
+"""Soccer possession tracking pipeline."""
