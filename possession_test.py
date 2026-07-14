@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 from sklearn.cluster import KMeans
-
+import json
 
 
 def detect_ball(frame, model, cols=4, rows=2, conf=0.2):
@@ -71,6 +71,11 @@ frames_since_ball = 0
 MAX_JUMP_PER_FRAME = 150   # px the ball can plausibly move in ONE frame
 MAX_COAST = 15       # after this many rejected frames, allow re-acquiring anywhere
 
+POSSESSION_DIST = 70
+possession_counts = { 0 :0, 1:0}
+loose_count = 0
+timeline = []
+
 while True:
     success, frame = cap.read()
     if not success:
@@ -136,6 +141,8 @@ while True:
             team = kmeans.predict([color])[0]
             player_points.append((get_feet_point(box), team))
 
+    possessor = None
+
     if ball_point is not None and player_points:
         closest_team = None
         closest_dist = None
@@ -145,10 +152,35 @@ while True:
                 closest_dist = dist
                 closest_team = team
 
-        print(f"frame {frame_index}: closest team {closest_team}, distance {closest_dist:.1f}")
+        if closest_dist < POSSESSION_DIST:
+            loose_count += 1
+        else:
+            possession_counts[possessor] += 1
+
+        timeline.append({"frame": frame_index, "team": possessor})
+        
     cv2.imshow("possession_test", frame)
     if cv2.waitKey(25) & 0xFF == ord('q'):
         break
 
 cap.release()
+total_owned = possession_counts[0] + possession_counts[1]
+if total_owned > 0:
+    pct_a = 100 * possession_counts[0] / total_owned
+    pct_b = 100 * possession_counts[1] / total_owned
+else:
+    pct_a = pct_b = 0
+
+summary = {
+    "team_a_pct": round(pct_a, 1),
+    "team_b_pct": round(pct_b, 1),
+    "team_a_frames": possession_counts[0],
+    "team_b_frames": possession_counts[1],
+    "loose_frames": loose_count,
+}
+
+with open("outputs/possession_log.json", "w") as f:
+    json.dump({"summary": summary, "timeline": timeline}, f, indent=2)
+
+print(summary)
 cv2.destroyAllWindows()
