@@ -11,7 +11,7 @@ while True:
     if not success:
         break
 
-    results = model.track(frame, persist=True)
+    results = model.track(frame, persist=True, conf=0.15, imgsz=1280)
 
     for box in results[0].boxes:
         class_id = int(box.cls[0])
