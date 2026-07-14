@@ -46,12 +46,18 @@ for colour, team in zip(colours, team_labels):
     distance = np.linalg.norm(colour - center)
     distances.append(distance)
 
-for (x1,y1,x2,y2), team, dist in sorted(zip(positions, team_labels, distance), key=lambda p: -p[2]):
+for (x1,y1,x2,y2), team, dist in sorted(zip(positions, team_labels, distances), key=lambda p: -p[2]):
     print(f"team {team}, distance {dist:.1f}, box ({x1}, {y1})")
 
 
 for (x1,y1,x2,y2), team in zip(positions, team_labels):
-    colour = (0, 255, 255) if team == 0 else (255, 0, 255)
+    if dist > 45:
+        colour = (200, 200, 200) # unclassfied
+    elif team == 0:
+        colour = (0, 255, 255)
+    else:
+        colour = (255, 0, 255)
+   
     cv2.rectangle(frame, (x1, y1), (x2, y2), colour, 2)
 
 cv2.imshow("teams", frame)
