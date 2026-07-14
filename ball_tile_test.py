@@ -9,6 +9,35 @@ cap.set(cv2.CAP_PROP_POS_FRAMES, 630)
 success, frame = cap.read()
 cap.release()
 
+def detect_ball(frame, model, cols=4, rows=2, conf=0.2):
+    height, width, _ = frame.shape
+    tile_w = width // cols
+    tile_h = height // rows
+
+    best_point = None
+    best_conf = 0.0
+
+    for row in range(rows):
+        for col in range(cols):
+            x_offset = col * tile_w
+            y_offset = row * tile_h
+            tile = frame[y_offset:y_offset + tile_h, x_offset:x_offset + tile_w]
+            results = model(tile, conf=conf, classes=[32], verbose=False)
+
+            for box in results[0].boxes:
+                c = float(box.conf[0])
+                if c > best_conf:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    cx = (x1 + x2) / 2 + x_offset
+                    cy = (y1 + y2) / 2 + y_offset
+                    best_point = (cx, cy)
+                    best_conf = c
+
+    return best_point, best_conf
+
+
+point, conf = detect_ball(frame, model)
+print(f"detect_ball result: point {point}, conf {conf:.2f}")
 # --- Baseline: full-frame pass ---
 full_results = model(frame, conf=0.15, imgsz=1280, classes=[32])
 print(f"FULL FRAME: {len(full_results[0].boxes)} ball candidates")
