@@ -26,7 +26,7 @@ for box in results[0].boxes:
 
     hsv = cv2.cvtColor(torso, cv2.COLOR_BGR2HSV)
     lower_green = np.array([34,40,40])
-    upper_green = np.array([85])
+    upper_green = np.array([85, 255, 255])
     green_mask = cv2.inRange(hsv, lower_green, upper_green)
     not_green_mask = cv2.bitwise_not(green_mask)
     
@@ -50,8 +50,8 @@ for (x1,y1,x2,y2), team, dist in sorted(zip(positions, team_labels, distances), 
     print(f"team {team}, distance {dist:.1f}, box ({x1}, {y1})")
 
 
-for (x1,y1,x2,y2), team in zip(positions, team_labels):
-    if dist > 45:
+for (x1,y1,x2,y2), team, dist in zip(positions, team_labels, distances):
+    if dist > 65:
         colour = (200, 200, 200) # unclassfied
     elif team == 0:
         colour = (0, 255, 255)
