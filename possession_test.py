@@ -68,8 +68,8 @@ cap = cv2.VideoCapture(video_path)
 
 last_ball_point = None
 frames_since_ball = 0
-MAX_BALL_JUMP = 200   # px; a real ball can't move further than this between frames
-MAX_COAST = 15        # after this many rejected frames, allow re-acquiring anywhere
+MAX_JUMP_PER_FRAME = 150   # px the ball can plausibly move in ONE frame
+MAX_COAST = 15       # after this many rejected frames, allow re-acquiring anywhere
 
 while True:
     success, frame = cap.read()
@@ -112,11 +112,14 @@ while True:
 
     if candidate is not None:
         if last_ball_point is None:
-            jumped = False
+            accept = True
         else:
-            jumped = np.linalg.norm(np.array(candidate) - np.array(last_ball_point)) > MAX_BALL_JUMP
+            gap = frames_since_ball + 1
+            budget = MAX_JUMP_PER_FRAME * gap
+            jump = np.linalg.norm(np.array(candidate) - np.array(last_ball_point))
+            accept = (jump < budget) or (frames_since_ball > MAX_COAST)
 
-        if not jumped or frames_since_ball > MAX_COAST:
+        if accept:
             ball_point = candidate
             last_ball_point = candidate
             frames_since_ball = 0
