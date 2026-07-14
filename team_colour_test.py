@@ -40,6 +40,15 @@ colours = np.array(colours)
 kmeans = KMeans(n_clusters=2, n_init=10)
 team_labels = kmeans.fit_predict(colours)
 
+distances = []
+for colour, team in zip(colours, team_labels):
+    center = kmeans.cluster_centers_[team]
+    distance = np.linalg.norm(colour - center)
+    distances.append(distance)
+
+for (x1,y1,x2,y2), team, dist in sorted(zip(positions, team_labels, distance), key=lambda p: -p[2]):
+    print(f"team {team}, distance {dist:.1f}, box ({x1}, {y1})")
+
 
 for (x1,y1,x2,y2), team in zip(positions, team_labels):
     colour = (0, 255, 255) if team == 0 else (255, 0, 255)
