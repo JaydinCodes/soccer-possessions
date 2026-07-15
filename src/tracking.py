@@ -37,7 +37,9 @@ class PlayerTracker:
             warnings.simplefilter("ignore")
             self.tracker = sv.ByteTrack(frame_rate=config.TRACK_FRAME_RATE)
         self.role_votes = defaultdict(Counter)   # track_id -> Counter(role)
-        self.team_votes = defaultdict(Counter)   # track_id -> Counter(team)
+        self.team_votes = defaultdict(Counter)   # track_id -> Counter(team) [confident only]
+        self.team_reads = defaultdict(int)       # track_id -> total colour reads
+        self.hivis_reads = defaultdict(int)      # track_id -> reads that were hi-vis
 
     def update(self, persons):
         """Advance the tracker one frame.
@@ -57,12 +59,42 @@ class PlayerTracker:
             out.append({"id": tid, "xyxy": box, "role": role})
         return out
 
-    def vote_team(self, track_id, team):
-        if team is not None:
+    def observe_team(self, track_id, team, confident, is_hivis=False):
+        """Record one jersey-colour read for a track.
+
+        Every read (that produced a usable colour) counts toward the total;
+        only confident reads vote for a team, and hi-vis reads are tallied too.
+        The ratios drive the referee heuristics in effective_role().
+        """
+        self.team_reads[track_id] += 1
+        if confident and team is not None:
             self.team_votes[track_id][team] += 1
+        if is_hivis:
+            self.hivis_reads[track_id] += 1
 
     def team_of(self, track_id):
         votes = self.team_votes.get(track_id)
         if not votes:
             return None
         return votes.most_common(1)[0][0]
+
+    def effective_role(self, track_id, model_role):
+        """Final role, applying the referee-by-colour heuristic.
+
+        The model's goalkeeper/referee labels are trusted as-is. A "player" that
+        has been colour-read enough times but almost never matched either team is
+        relabelled a referee (hi-vis kit that fools the detector).
+        """
+        if model_role != "player":
+            return model_role
+        reads = self.team_reads.get(track_id, 0)
+        if reads < config.REF_MIN_OBS:
+            return "player"
+        # Signal 2: consistently hi-vis kit -> official.
+        if self.hivis_reads.get(track_id, 0) / reads >= config.REF_HIVIS_FRAC:
+            return "referee"
+        # Signal 1: colour matches neither team.
+        matched = sum(self.team_votes[track_id].values())
+        if matched / reads < config.REF_MAX_TEAM_FRAC:
+            return "referee"
+        return "player"

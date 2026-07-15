@@ -65,6 +65,21 @@ def jersey_feature(frame, box_xyxy):
     return np.array([x, y, z], dtype=np.float32)
 
 
+def hivis_fraction(frame, box_xyxy):
+    """Fraction of the torso that is bright, saturated yellow-green (hi-vis kit).
+
+    Fluorescent official shirts are far brighter/more saturated than night grass,
+    so this survives the grass mask that destroys the plain-green hue. Near 0 for
+    normal players, clearly positive for a hi-vis referee.
+    """
+    torso = _torso_patch(frame, box_xyxy)
+    if torso.size == 0:
+        return 0.0
+    hsv = cv2.cvtColor(torso, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, np.array(config.HIVIS_LOWER), np.array(config.HIVIS_UPPER))
+    return cv2.countNonZero(mask) / (torso.shape[0] * torso.shape[1])
+
+
 class TeamClassifier:
     """Learns two team clusters from early frames, then labels each player.
 

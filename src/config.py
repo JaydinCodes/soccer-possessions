@@ -63,6 +63,23 @@ TEAM_FIT_SAMPLES = 60      # torso colour samples to collect before fitting k-me
 UNCLASSIFIED_DIST = 0.55   # distance (in normalised hue-feature space) beyond
                            # which a player is "unknown" rather than forced onto a team
 
+# Referee heuristics: the model sometimes labels a referee as a "player".
+# Two independent signals relabel such a track as a referee, once it's been read
+# enough times (REF_MIN_OBS):
+#   1. Colour: a real outfield player matches one of the two team colours most
+#      of the time; a ref in a neutral kit matches neither.
+#   2. Hi-vis: a fluorescent yellow-green ref shirt is much brighter/more
+#      saturated than night grass, so a torso that's consistently hi-vis is an
+#      official (this survives the grass mask, which eats the plain-green hue).
+REF_MIN_OBS = 8            # reads before the heuristics may fire
+REF_MAX_TEAM_FRAC = 0.2    # signal 1: <20% of reads matched a team -> referee
+REF_HIVIS_FRAC = 0.5       # signal 2: >50% of reads were hi-vis -> referee
+
+# Hi-vis mask: bright, saturated yellow-green (fluorescent official kit).
+HIVIS_LOWER = (25, 120, 170)
+HIVIS_UPPER = (50, 255, 255)
+HIVIS_MIN_FRAC = 0.1       # torso fraction in the hi-vis band to count as hi-vis
+
 # Green pitch mask (HSV) so grass never pollutes the jersey colour.
 GREEN_LOWER = (35, 40, 40)
 GREEN_UPPER = (85, 255, 255)

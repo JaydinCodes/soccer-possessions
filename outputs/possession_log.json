@@ -1,16 +1,12 @@
 {
   "summary": {
-    "team_a_pct": 46.2,
-    "team_b_pct": 53.8,
-    "team_a_frames": 24,
+    "team_a_pct": 45.1,
+    "team_b_pct": 54.9,
+    "team_a_frames": 23,
     "team_b_frames": 28,
     "loose_frames": 321
   },
   "timeline": [
-    {
-      "frame": 6,
-      "team": null
-    },
     {
       "frame": 8,
       "team": null
@@ -441,7 +437,7 @@
     },
     {
       "frame": 222,
-      "team": 0
+      "team": null
     },
     {
       "frame": 224,

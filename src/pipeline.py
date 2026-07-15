@@ -18,6 +18,7 @@ from . import config
 from . import detection
 from . import overlay
 from . import possession
+from . import teams
 from . import tracking
 from .teams import TeamClassifier, jersey_feature
 
@@ -107,21 +108,29 @@ def run(source, show=True, save_path=None, output_json=None):
             outfield = [t for t in tracks if t["role"] == "player"]
             if not classifier.ready:
                 for t in outfield:
+                    if teams.hivis_fraction(frame, t["xyxy"]) >= config.HIVIS_MIN_FRAC:
+                        continue   # don't let a hi-vis official seed the team clusters
                     classifier.add_sample(jersey_feature(frame, t["xyxy"]))
                 if classifier.n_samples >= config.TEAM_FIT_SAMPLES:
                     classifier.fit()
 
-            # -- classify each track, vote its team, draw it ----------------
+            # -- classify each track, vote its team + role, draw it ---------
             player_points = []
             for t in tracks:
-                box, role, tid = t["xyxy"], t["role"], t["id"]
+                box, model_role, tid = t["xyxy"], t["role"], t["id"]
                 team = None
-                if role != "referee":
+                if model_role != "referee":
                     feat = jersey_feature(frame, box)
-                    predicted, confident = classifier.predict(feat)
-                    if confident:
-                        player_tracker.vote_team(tid, predicted)
+                    if feat is not None and classifier.ready:
+                        predicted, confident = classifier.predict(feat)
+                        is_hivis = teams.hivis_fraction(frame, box) >= config.HIVIS_MIN_FRAC
+                        player_tracker.observe_team(tid, predicted, confident, is_hivis)
                     team = player_tracker.team_of(tid)   # stable, voted over time
+
+                # Heuristic may relabel a hi-vis "player" as a referee.
+                role = player_tracker.effective_role(tid, model_role)
+                if role == "referee":
+                    team = None
                 overlay.draw_person(frame, box, role, team, tid)
 
                 # Referees never own the ball; players + goalkeepers can.
