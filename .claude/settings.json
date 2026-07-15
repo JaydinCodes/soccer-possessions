@@ -3,7 +3,18 @@
     "allow": [
       "Bash(venv/Scripts/python.exe -c ' *)",
       "Bash(venv/Scripts/python.exe run.py --source data/match.mp4 --no-show)",
-      "Bash(venv/Scripts/python.exe -m py_compile build_video.py src/*.py run.py app.py)"
+      "Bash(venv/Scripts/python.exe -m py_compile build_video.py src/*.py run.py app.py)",
+      "Bash(python -c \"import zipfile; zipfile.ZipFile\\('SNMOT-060-20260715T140310Z-1-001.zip'\\).extractall\\('snmot_extract'\\)\")",
+      "Bash(unzip -q -o \"SNMOT-060-20260715T140310Z-1-001.zip\" -d snmot_extract)",
+      "Bash(venv/Scripts/python.exe build_video.py data/snmot_extract/SNMOT-060/img1 data/snmot060.mp4 --fps 25)",
+      "Bash(venv/Scripts/python.exe prepare_ball_dataset.py)",
+      "Bash(venv/Scripts/python.exe train_ball.py)",
+      "Bash(tee \"C:/Users/Bron/AppData/Local/Temp/claude/c--Users-Bron-projects-soccer-possession/1d363751-f88b-4c38-8970-851cbe1e8de7/scratchpad/train.log\")",
+      "Bash(nvidia-smi --query-gpu=memory.used,memory.free --format=csv,noheader)",
+      "Bash(tasklist)",
+      "Bash(nvidia-smi --query-gpu=memory.free --format=csv,noheader)",
+      "Bash(echo \"launched batch4 training in bg \\(pid $!\\)\")",
+      "Bash(taskkill //F //IM python.exe)"
     ]
   }
 }

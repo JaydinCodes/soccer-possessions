@@ -52,7 +52,8 @@ class Detector:
     high-confidence person detections only, and keep the ball on predict.
     """
 
-    def __init__(self, model_path, use_tiling=None, imgsz=None, device=None):
+    def __init__(self, model_path, use_tiling=None, imgsz=None, device=None,
+                 ball_model_path=None, ball_imgsz=None):
         self.model = YOLO(model_path)
         (self.ball_ids, self.goalkeeper_ids,
          self.player_ids, self.referee_ids) = _roles_from_names(self.model.names)
@@ -60,6 +61,13 @@ class Detector:
         self.use_tiling = config.USE_TILING if use_tiling is None else use_tiling
         self.imgsz = imgsz or config.IMG_SIZE
         self.device = device        # e.g. 0 for GPU, "cpu"; None lets YOLO decide
+
+        # Optional dedicated ball model. When present, all ball detection (full
+        # frame + crop search) uses it instead of the main model's ball class.
+        self.ball_model = YOLO(ball_model_path) if ball_model_path else None
+        self.ball_imgsz = ball_imgsz or config.BALL_MODEL_IMGSZ
+        self.ball_model_ids = (
+            _roles_from_names(self.ball_model.names)[0] if self.ball_model else self.ball_ids)
 
     def role_of(self, class_id):
         """Human-readable role for a detected class id."""
@@ -80,25 +88,39 @@ class Detector:
         # Pass classes explicitly every call. Ultralytics remembers the last
         # `classes` filter on its predictor, so the ball-only crop search would
         # otherwise leak into this pass and drop all the players.
+        want = sorted(self.person_ids) if self.ball_model else sorted(self.ball_ids | self.person_ids)
         result = self.model(
             frame, conf=config.DETECT_CONF, imgsz=self.imgsz,
-            classes=sorted(self.ball_ids | self.person_ids),
-            device=self.device, verbose=False,
+            classes=want, device=self.device, verbose=False,
         )[0]
         det = sv.Detections.from_ultralytics(result)
-
-        ball_mask = np.isin(det.class_id, list(self.ball_ids)) if self.ball_ids \
-            else np.zeros(len(det), dtype=bool)
-        ball_candidates = []
-        for (x1, y1, x2, y2), conf in zip(det.xyxy[ball_mask], det.confidence[ball_mask]):
-            ball_candidates.append((((x1 + x2) / 2.0, (y1 + y2) / 2.0), float(conf)))
 
         person_mask = np.isin(det.class_id, list(self.person_ids))
         persons = det[person_mask]
 
+        # Ball: dedicated model if we have one, else the main model's ball class.
+        if self.ball_model is not None:
+            ball_candidates = self._ball_model_detect(frame, self.ball_imgsz)
+        else:
+            ball_mask = np.isin(det.class_id, list(self.ball_ids)) if self.ball_ids \
+                else np.zeros(len(det), dtype=bool)
+            ball_candidates = [
+                (((x1 + x2) / 2.0, (y1 + y2) / 2.0), float(conf))
+                for (x1, y1, x2, y2), conf in zip(det.xyxy[ball_mask], det.confidence[ball_mask])]
+
         if not ball_candidates and self.use_tiling:
             ball_candidates = self._detect_ball_tiled(frame)
         return persons, ball_candidates
+
+    def _ball_model_detect(self, frame, imgsz):
+        """Run the dedicated ball model on a frame/crop. Returns [(point, conf)]."""
+        res = self.ball_model(
+            frame, conf=config.DETECT_CONF, imgsz=imgsz,
+            classes=sorted(self.ball_model_ids), device=self.device, verbose=False,
+        )[0]
+        return [(((float(b.xyxy[0][0]) + float(b.xyxy[0][2])) / 2.0,
+                  (float(b.xyxy[0][1]) + float(b.xyxy[0][3])) / 2.0), float(b.conf[0]))
+                for b in res.boxes]
 
     def detect_ball_crop(self, frame, center):
         """Zoom into a window around `center` and detect the ball there.
@@ -119,9 +141,12 @@ class Detector:
         if crop.size == 0:
             return []
 
-        res = self.model(
+        # Use the dedicated ball model on the crop if we have one.
+        model = self.ball_model or self.model
+        ids = self.ball_model_ids if self.ball_model else self.ball_ids
+        res = model(
             crop, conf=config.BALL_CROP_CONF, imgsz=config.BALL_CROP_IMGSZ,
-            classes=sorted(self.ball_ids), device=self.device, verbose=False,
+            classes=sorted(ids), device=self.device, verbose=False,
         )[0]
         candidates = []
         for box in res.boxes:

@@ -79,8 +79,11 @@ def run(source, show=True, save_path=None, output_json=None,
     #   1. NVIDIA GPU  -> PyTorch on CUDA (fastest by far; runs full res real-time)
     #   2. no GPU, small size -> OpenVINO on CPU (~6x the CPU PyTorch speed @ 960)
     #   3. no GPU, full res   -> PyTorch on CPU
+    ball_model = config.BALL_MODEL_PATH if (config.BALL_MODEL_PATH
+                 and os.path.exists(config.BALL_MODEL_PATH)) else None
     if cuda and os.path.exists(config.MODEL_PATH):
-        detector = detection.Detector(config.MODEL_PATH, imgsz=imgsz, device=0)
+        detector = detection.Detector(config.MODEL_PATH, imgsz=imgsz, device=0,
+                                      ball_model_path=ball_model)
         backend = f"CUDA GPU ({torch.cuda.get_device_name(0)})"
     elif (not cuda) and os.path.isdir(config.OPENVINO_PATH) and imgsz <= 1024:
         detector = detection.Detector(config.OPENVINO_PATH, imgsz=imgsz)

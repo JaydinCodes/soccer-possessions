@@ -1,10 +1,10 @@
 {
   "summary": {
-    "team_a_pct": 46.4,
-    "team_b_pct": 53.6,
-    "team_a_frames": 26,
-    "team_b_frames": 30,
-    "loose_frames": 316
+    "team_a_pct": 44.7,
+    "team_b_pct": 55.3,
+    "team_a_frames": 42,
+    "team_b_frames": 52,
+    "loose_frames": 278
   },
   "timeline": [
     {
@@ -69,107 +69,107 @@
     },
     {
       "frame": 38,
-      "team": null
+      "team": 1
     },
     {
       "frame": 40,
-      "team": null
+      "team": 1
     },
     {
       "frame": 42,
-      "team": null
+      "team": 1
     },
     {
       "frame": 44,
-      "team": null
+      "team": 1
     },
     {
       "frame": 46,
-      "team": null
+      "team": 1
     },
     {
       "frame": 48,
-      "team": null
+      "team": 1
     },
     {
       "frame": 50,
-      "team": null
+      "team": 1
     },
     {
       "frame": 52,
-      "team": null
+      "team": 1
     },
     {
       "frame": 54,
-      "team": null
+      "team": 1
     },
     {
       "frame": 56,
-      "team": null
+      "team": 1
     },
     {
       "frame": 58,
-      "team": null
+      "team": 1
     },
     {
       "frame": 60,
-      "team": null
+      "team": 1
     },
     {
       "frame": 62,
-      "team": null
+      "team": 1
     },
     {
       "frame": 64,
-      "team": null
+      "team": 1
     },
     {
       "frame": 66,
-      "team": null
+      "team": 1
     },
     {
       "frame": 68,
-      "team": null
+      "team": 1
     },
     {
       "frame": 70,
-      "team": null
+      "team": 1
     },
     {
       "frame": 72,
-      "team": null
+      "team": 1
     },
     {
       "frame": 74,
-      "team": null
+      "team": 1
     },
     {
       "frame": 76,
-      "team": null
+      "team": 1
     },
     {
       "frame": 78,
-      "team": null
+      "team": 1
     },
     {
       "frame": 80,
-      "team": null
+      "team": 1
     },
     {
       "frame": 82,
-      "team": null
+      "team": 1
     },
     {
       "frame": 84,
-      "team": null
+      "team": 1
     },
     {
       "frame": 86,
-      "team": null
+      "team": 1
     },
     {
       "frame": 88,
-      "team": null
+      "team": 1
     },
     {
       "frame": 90,
@@ -409,7 +409,7 @@
     },
     {
       "frame": 208,
-      "team": null
+      "team": 0
     },
     {
       "frame": 210,
@@ -429,15 +429,15 @@
     },
     {
       "frame": 218,
-      "team": null
+      "team": 0
     },
     {
       "frame": 220,
-      "team": null
+      "team": 0
     },
     {
       "frame": 222,
-      "team": null
+      "team": 0
     },
     {
       "frame": 224,
@@ -529,11 +529,11 @@
     },
     {
       "frame": 268,
-      "team": null
+      "team": 0
     },
     {
       "frame": 270,
-      "team": null
+      "team": 0
     },
     {
       "frame": 272,
@@ -753,7 +753,7 @@
     },
     {
       "frame": 380,
-      "team": 1
+      "team": null
     },
     {
       "frame": 382,
@@ -861,7 +861,7 @@
     },
     {
       "frame": 434,
-      "team": 1
+      "team": null
     },
     {
       "frame": 436,
@@ -953,43 +953,43 @@
     },
     {
       "frame": 480,
-      "team": null
+      "team": 0
     },
     {
       "frame": 482,
-      "team": null
+      "team": 0
     },
     {
       "frame": 484,
-      "team": null
+      "team": 0
     },
     {
       "frame": 486,
-      "team": null
+      "team": 0
     },
     {
       "frame": 488,
-      "team": null
+      "team": 0
     },
     {
       "frame": 490,
-      "team": null
+      "team": 0
     },
     {
       "frame": 492,
-      "team": null
+      "team": 0
     },
     {
       "frame": 494,
-      "team": null
+      "team": 0
     },
     {
       "frame": 496,
-      "team": null
+      "team": 0
     },
     {
       "frame": 498,
-      "team": null
+      "team": 0
     },
     {
       "frame": 500,
@@ -1489,11 +1489,11 @@
     },
     {
       "frame": 748,
-      "team": 1
+      "team": null
     },
     {
       "frame": 750,
-      "team": 1
+      "team": null
     }
   ],
   "meta": {

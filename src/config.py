@@ -22,6 +22,13 @@ MODEL_PATH = "models/football.pt"
 OPENVINO_PATH = "models/football_openvino_model"
 FALLBACK_MODEL_PATH = "yolov8n.pt"
 
+# Optional dedicated ball model (fine-tuned on SNMOT ball labels). When present
+# it replaces the main model's generic ball detection -- ~2x the recall on real
+# footage. Runs as a second small pass; on GPU that's fine. Set to None to use
+# only the main model's ball class.
+BALL_MODEL_PATH = "models/ball.pt"
+BALL_MODEL_IMGSZ = 960
+
 # Inference size. The ball is small and resolution-hungry: ball recall is ~69%
 # at 1280 but ~42% at 960. Players survive low res fine. 1280 = accurate/slower,
 # 960 = faster/live (Kalman interpolation cushions the lost ball frames).
