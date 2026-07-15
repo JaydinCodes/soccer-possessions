@@ -28,6 +28,14 @@ USE_TILING = False
 PROCESS_EVERY = 2
 
 # ---------------------------------------------------------------------------
+# Player tracking (ByteTrack) + per-track voting
+# ---------------------------------------------------------------------------
+# We only process every PROCESS_EVERY-th frame, so the effective frame rate the
+# tracker sees is source_fps / PROCESS_EVERY. ByteTrack uses this to decide how
+# long to keep a lost track alive.
+TRACK_FRAME_RATE = 12
+
+# ---------------------------------------------------------------------------
 # Ball detection (tiling fallback, only used when USE_TILING is on)
 # ---------------------------------------------------------------------------
 TILE_COLS = 4
@@ -37,6 +45,7 @@ TILE_CONF = 0.15
 # Temporal continuity: reject ball jumps that are physically implausible.
 MAX_JUMP_PER_FRAME = 150   # px the ball can plausibly move in ONE processed frame
 MAX_COAST = 15             # after this many misses, allow re-acquiring anywhere
+BALL_MAX_INTERP = 8        # max consecutive frames to Kalman-interpolate through a gap
 BALL_TRAIL_LEN = 25        # how many past ball points to draw as a trail
 
 # Ball candidate scoring: prefer the blob near a player's feet / near where the
@@ -94,4 +103,5 @@ TEAM_HEX = {
 }
 UNCLASSIFIED_BGR = (190, 190, 190)
 REFEREE_BGR = (255, 255, 255)     # referees drawn in white, excluded from teams
+GOALKEEPER_BGR = (0, 140, 255)    # goalkeepers drawn in orange, labelled "GK"
 TEAM_NAMES = {0: "Team A", 1: "Team B"}

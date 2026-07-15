@@ -1,10 +1,10 @@
 {
   "summary": {
-    "team_a_pct": 60.6,
-    "team_b_pct": 39.4,
-    "team_a_frames": 20,
-    "team_b_frames": 13,
-    "loose_frames": 340
+    "team_a_pct": 46.2,
+    "team_b_pct": 53.8,
+    "team_a_frames": 24,
+    "team_b_frames": 28,
+    "loose_frames": 321
   },
   "timeline": [
     {
@@ -429,7 +429,7 @@
     },
     {
       "frame": 216,
-      "team": null
+      "team": 0
     },
     {
       "frame": 218,
@@ -521,15 +521,15 @@
     },
     {
       "frame": 262,
-      "team": null
+      "team": 0
     },
     {
       "frame": 264,
-      "team": null
+      "team": 0
     },
     {
       "frame": 266,
-      "team": null
+      "team": 0
     },
     {
       "frame": 268,
@@ -757,87 +757,87 @@
     },
     {
       "frame": 380,
-      "team": null
+      "team": 1
     },
     {
       "frame": 382,
-      "team": null
+      "team": 1
     },
     {
       "frame": 384,
-      "team": null
+      "team": 1
     },
     {
       "frame": 386,
-      "team": null
+      "team": 1
     },
     {
       "frame": 388,
-      "team": null
+      "team": 1
     },
     {
       "frame": 390,
-      "team": null
+      "team": 1
     },
     {
       "frame": 392,
-      "team": null
+      "team": 1
     },
     {
       "frame": 394,
-      "team": null
+      "team": 1
     },
     {
       "frame": 396,
-      "team": null
+      "team": 1
     },
     {
       "frame": 398,
-      "team": null
+      "team": 1
     },
     {
       "frame": 400,
-      "team": null
+      "team": 1
     },
     {
       "frame": 402,
-      "team": null
+      "team": 1
     },
     {
       "frame": 404,
-      "team": null
+      "team": 1
     },
     {
       "frame": 406,
-      "team": null
+      "team": 1
     },
     {
       "frame": 408,
-      "team": null
+      "team": 1
     },
     {
       "frame": 410,
-      "team": null
+      "team": 1
     },
     {
       "frame": 412,
-      "team": null
+      "team": 1
     },
     {
       "frame": 414,
-      "team": null
+      "team": 1
     },
     {
       "frame": 416,
-      "team": null
+      "team": 1
     },
     {
       "frame": 418,
-      "team": null
+      "team": 1
     },
     {
       "frame": 420,
-      "team": null
+      "team": 1
     },
     {
       "frame": 422,
@@ -869,7 +869,7 @@
     },
     {
       "frame": 436,
-      "team": 1
+      "team": null
     },
     {
       "frame": 438,
@@ -1141,23 +1141,23 @@
     },
     {
       "frame": 572,
-      "team": 1
+      "team": null
     },
     {
       "frame": 574,
-      "team": 1
+      "team": null
     },
     {
       "frame": 576,
-      "team": 1
+      "team": null
     },
     {
       "frame": 578,
-      "team": 1
+      "team": null
     },
     {
       "frame": 580,
-      "team": 1
+      "team": null
     },
     {
       "frame": 582,

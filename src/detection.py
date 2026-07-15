@@ -16,63 +16,82 @@ colour clustering or steal possession.
 """
 
 import numpy as np
+import supervision as sv
 from ultralytics import YOLO
 
 from . import config
 
 
 def _roles_from_names(names):
-    """Map a model's class ids to roles by reading its label names."""
-    ball, player, referee = set(), set(), set()
+    """Map a model's class ids to role sets by reading its label names.
+
+    Returns (ball, goalkeeper, player, referee). Generic COCO has only
+    person -> player and sports ball -> ball; the rest stay empty.
+    """
+    ball, goalkeeper, player, referee = set(), set(), set(), set()
     for i, name in names.items():
         n = name.lower()
         if "ball" in n:
             ball.add(i)
+        elif "goalkeeper" in n or n in ("gk", "keeper"):
+            goalkeeper.add(i)
         elif "referee" in n or n == "ref":
             referee.add(i)
-        elif n in ("player", "goalkeeper", "person"):
+        elif n in ("player", "person"):
             player.add(i)
-    return ball, player, referee
+    return ball, goalkeeper, player, referee
 
 
 class Detector:
-    """YOLO model + role resolution + optional tiled ball fallback."""
+    """YOLO model + role resolution. Emits ByteTrack-ready person detections.
+
+    We use predict, NOT model.track(): ByteTrack (inside track()) refuses to
+    start a track for detections below ~0.6 confidence, and the small soccer
+    ball is almost always below that, so track() drops the ball (measured 3%
+    recall vs 67% with predict). We run the player tracker ourselves, over the
+    high-confidence person detections only, and keep the ball on predict.
+    """
 
     def __init__(self, model_path, use_tiling=None):
         self.model = YOLO(model_path)
-        self.ball_ids, self.player_ids, self.referee_ids = _roles_from_names(self.model.names)
+        (self.ball_ids, self.goalkeeper_ids,
+         self.player_ids, self.referee_ids) = _roles_from_names(self.model.names)
+        self.person_ids = self.goalkeeper_ids | self.player_ids | self.referee_ids
         self.use_tiling = config.USE_TILING if use_tiling is None else use_tiling
 
+    def role_of(self, class_id):
+        """Human-readable role for a detected class id."""
+        if class_id in self.goalkeeper_ids:
+            return "goalkeeper"
+        if class_id in self.referee_ids:
+            return "referee"
+        return "player"
+
     def detect(self, frame):
-        """One detection pass. Returns (players, referees, ball_candidates).
+        """One predict pass. Returns (persons, ball_candidates).
 
-        players         : list of (xyxy_tuple, track_id)   -- players + goalkeepers
-        referees        : list of xyxy_tuple                -- drawn but ignored by logic
+        persons         : sv.Detections of players + goalkeepers + referees,
+                          ready to hand to the tracker. class_id is preserved so
+                          each track can vote on its role over time.
         ball_candidates : list of (point, conf)
-
-        Note: we use predict, NOT model.track(). ByteTrack refuses to start a
-        track for detections below ~0.6 confidence, and the small soccer ball is
-        almost always detected below that -- so track() silently drops the ball
-        (measured: 3% ball recall with track vs 67% with predict on this clip).
-        We don't use player track IDs anywhere, so predict is strictly better.
         """
-        results = self.model(
+        result = self.model(
             frame, conf=config.DETECT_CONF, imgsz=config.IMG_SIZE, verbose=False,
-        )
-        players, referees, ball_candidates = [], [], []
-        for box in results[0].boxes:
-            cls = int(box.cls[0])
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            if cls in self.ball_ids:
-                ball_candidates.append((((x1 + x2) / 2.0, (y1 + y2) / 2.0), float(box.conf[0])))
-            elif cls in self.referee_ids:
-                referees.append((x1, y1, x2, y2))
-            elif cls in self.player_ids:
-                players.append(((x1, y1, x2, y2), -1))
+        )[0]
+        det = sv.Detections.from_ultralytics(result)
+
+        ball_mask = np.isin(det.class_id, list(self.ball_ids)) if self.ball_ids \
+            else np.zeros(len(det), dtype=bool)
+        ball_candidates = []
+        for (x1, y1, x2, y2), conf in zip(det.xyxy[ball_mask], det.confidence[ball_mask]):
+            ball_candidates.append((((x1 + x2) / 2.0, (y1 + y2) / 2.0), float(conf)))
+
+        person_mask = np.isin(det.class_id, list(self.person_ids))
+        persons = det[person_mask]
 
         if not ball_candidates and self.use_tiling:
             ball_candidates = self._detect_ball_tiled(frame)
-        return players, referees, ball_candidates
+        return persons, ball_candidates
 
     def _detect_ball_tiled(self, frame):
         """Slice the frame into tiles and return EVERY ball candidate found."""
@@ -131,35 +150,76 @@ def select_ball(candidates, player_feet, last_point):
 
 
 class BallTracker:
-    """Accepts/rejects raw ball detections using physical plausibility.
+    """Kalman-filtered ball tracker with gap interpolation.
 
-    A detection is accepted if the ball didn't "teleport" further than it
-    plausibly could since we last saw it. After a long miss (MAX_COAST) we drop
-    continuity and accept anywhere, so we can re-acquire after an occlusion.
+    The detector loses the ball on ~a third of frames (motion blur, occlusion,
+    the ball leaving the pitch plane). A raw per-frame position therefore blinks
+    on and off, breaking the trail and dropping possession mid-dribble.
+
+    A constant-velocity Kalman filter fixes this. It models the ball's state as
+    (x, y, vx, vy):
+      * on a detection -> "correct" the estimate toward the measurement (this
+        also smooths detector jitter), after rejecting implausible teleports;
+      * on a miss -> "coast": predict where the ball went from its last velocity
+        and report that, so the trail and possession stay continuous.
+
+    Coasting is capped (BALL_MAX_INTERP) so we never invent a ball for long --
+    after that the track is dropped and re-acquired fresh.
+
+    update() returns (point, interpolated): interpolated=True means the point
+    was predicted through a gap rather than actually detected this frame.
     """
 
     def __init__(self):
+        import cv2
+        self.kf = cv2.KalmanFilter(4, 2)
+        self.kf.transitionMatrix = np.array(
+            [[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32)
+        self.kf.measurementMatrix = np.array(
+            [[1, 0, 0, 0], [0, 1, 0, 0]], np.float32)
+        self.kf.processNoiseCov = np.eye(4, dtype=np.float32) * 1e-2
+        self.kf.measurementNoiseCov = np.eye(2, dtype=np.float32) * 1e-1
+        self.initialized = False
+        self.misses = 0
         self.last_point = None
-        self.frames_since = 0
+
+    def _init(self, pt):
+        self.kf.statePost = np.array([[pt[0]], [pt[1]], [0], [0]], np.float32)
+        self.kf.errorCovPost = np.eye(4, dtype=np.float32)
+        self.initialized = True
+        self.misses = 0
+        self.last_point = pt
 
     def update(self, candidate):
-        """Feed one raw candidate point (or None). Return the accepted point or None."""
-        if candidate is None:
-            self.frames_since += 1
-            return None
+        """Feed one raw candidate point (or None). Return (point, interpolated)."""
+        if not self.initialized:
+            if candidate is not None:
+                self._init(candidate)
+                return candidate, False
+            return None, False
 
-        if self.last_point is None:
-            accept = True
-        else:
-            gap = self.frames_since + 1
-            budget = config.MAX_JUMP_PER_FRAME * gap
-            jump = np.linalg.norm(np.array(candidate) - np.array(self.last_point))
-            accept = (jump < budget) or (self.frames_since > config.MAX_COAST)
+        predicted = self.kf.predict()
+        pred_pt = (float(predicted[0, 0]), float(predicted[1, 0]))
 
-        if accept:
-            self.last_point = candidate
-            self.frames_since = 0
-            return candidate
+        if candidate is not None:
+            jump = np.hypot(candidate[0] - pred_pt[0], candidate[1] - pred_pt[1])
+            budget = config.MAX_JUMP_PER_FRAME * (self.misses + 1)
+            if jump < budget or self.misses > config.MAX_COAST:
+                measurement = np.array([[np.float32(candidate[0])],
+                                        [np.float32(candidate[1])]])
+                corrected = self.kf.correct(measurement)
+                self.misses = 0
+                self.last_point = (float(corrected[0, 0]), float(corrected[1, 0]))
+                return self.last_point, False
 
-        self.frames_since += 1
-        return None
+        # Miss (or rejected teleport): coast on the prediction, up to the cap.
+        self.misses += 1
+        if self.misses <= config.BALL_MAX_INTERP:
+            self.kf.statePost = predicted.copy()
+            self.last_point = pred_pt
+            return pred_pt, True
+
+        # Lost for too long -- drop the track and re-acquire next detection.
+        self.initialized = False
+        self.last_point = None
+        return None, False

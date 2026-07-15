@@ -18,6 +18,7 @@ from . import config
 from . import detection
 from . import overlay
 from . import possession
+from . import tracking
 from .teams import TeamClassifier, jersey_feature
 
 
@@ -77,6 +78,7 @@ def run(source, show=True, save_path=None, output_json=None):
         raise RuntimeError(f"could not open source: {source!r}")
 
     classifier = TeamClassifier()
+    player_tracker = tracking.PlayerTracker(detector)
     ball_tracker = detection.BallTracker()
     smoother = possession.PossessionSmoother()
     stats = possession.PossessionStats()
@@ -96,34 +98,44 @@ def run(source, show=True, save_path=None, output_json=None):
                 continue
             processed += 1
 
-            players, referees, ball_candidates = detector.detect(frame)
+            persons, ball_candidates = detector.detect(frame)
+            tracks = player_tracker.update(persons)   # persistent ids + voted role
 
-            # -- teams: warm up the classifier, then classify --------------
-            # Referees are excluded here, so their kit never skews the clusters.
-            features = [jersey_feature(frame, box) for box, _ in players]
+            # -- teams: warm up the classifier on outfield players only -----
+            # (referees and goalkeepers are excluded so their kit never skews
+            # the two-team clusters).
+            outfield = [t for t in tracks if t["role"] == "player"]
             if not classifier.ready:
-                for feat in features:
-                    classifier.add_sample(feat)
+                for t in outfield:
+                    classifier.add_sample(jersey_feature(frame, t["xyxy"]))
                 if classifier.n_samples >= config.TEAM_FIT_SAMPLES:
                     classifier.fit()
 
-            # -- players first: we need their feet to judge the ball --------
-            for ref_box in referees:
-                overlay.draw_referee(frame, ref_box)
+            # -- classify each track, vote its team, draw it ----------------
             player_points = []
-            for (box, _tid), feat in zip(players, features):
-                team, confident = classifier.predict(feat)
-                overlay.draw_player(frame, box, team, confident)
-                feet = ((box[0] + box[2]) / 2.0, box[3])
-                height = box[3] - box[1]
-                player_points.append((feet, team if confident else None, height))
+            for t in tracks:
+                box, role, tid = t["xyxy"], t["role"], t["id"]
+                team = None
+                if role != "referee":
+                    feat = jersey_feature(frame, box)
+                    predicted, confident = classifier.predict(feat)
+                    if confident:
+                        player_tracker.vote_team(tid, predicted)
+                    team = player_tracker.team_of(tid)   # stable, voted over time
+                overlay.draw_person(frame, box, role, team, tid)
+
+                # Referees never own the ball; players + goalkeepers can.
+                if role != "referee":
+                    feet = ((box[0] + box[2]) / 2.0, box[3])
+                    height = box[3] - box[1]
+                    player_points.append((feet, team, height))
             feet_points = [feet for feet, _team, _h in player_points]
 
             # -- ball: pick the candidate that fits the game (near a player's
             # feet / near the last position), then apply the jump filter.
             chosen = detection.select_ball(ball_candidates, feet_points,
                                            ball_tracker.last_point)
-            ball_point = ball_tracker.update(chosen)
+            ball_point, _interpolated = ball_tracker.update(chosen)
             trail.append(ball_point)
 
             # -- possession -------------------------------------------------

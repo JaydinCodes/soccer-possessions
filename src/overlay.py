@@ -11,24 +11,28 @@ import numpy as np
 from . import config
 
 
-def draw_player(frame, box_xyxy, team, confident):
+def draw_person(frame, box_xyxy, role, team, track_id=None):
+    """Draw one tracked person, coloured/labelled by their voted role.
+
+    role : "player" | "goalkeeper" | "referee"
+    team : 0/1 for a classified player, else None
+    """
     x1, y1, x2, y2 = box_xyxy
-    if not confident or team is None:
-        color = config.UNCLASSIFIED_BGR
-        label = "?"
+    if role == "referee":
+        color, label = config.REFEREE_BGR, "REF"
+    elif role == "goalkeeper":
+        color, label = config.GOALKEEPER_BGR, "GK"
+    elif team is None:
+        color, label = config.UNCLASSIFIED_BGR, "?"
     else:
-        color = config.TEAM_BGR[team]
-        label = config.TEAM_NAMES[team]
+        color, label = config.TEAM_BGR[team], config.TEAM_NAMES[team]
+
+    if track_id is not None and role != "referee":
+        label = f"{label} #{track_id}"
+
     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
     cv2.putText(frame, label, (x1, max(0, y1 - 6)),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
-
-def draw_referee(frame, box_xyxy):
-    x1, y1, x2, y2 = box_xyxy
-    cv2.rectangle(frame, (x1, y1), (x2, y2), config.REFEREE_BGR, 2)
-    cv2.putText(frame, "ref", (x1, max(0, y1 - 6)),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, config.REFEREE_BGR, 2)
 
 
 def draw_ball(frame, trail):
