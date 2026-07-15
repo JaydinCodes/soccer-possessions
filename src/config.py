@@ -13,10 +13,19 @@ dashboard exactly.
 # longer need the slow 8-tile search. Fall back to "yolov8n.pt" (generic COCO)
 # if the file is missing -- see detection.Detector, which auto-detects which
 # classes mean ball / player / referee, so both models just work.
+#
+# We prefer the OpenVINO export (models/football_openvino_model/) when present:
+# on an Intel CPU it runs the SAME model ~1.25x faster with no accuracy loss.
+# Create it once with:  python -c "from ultralytics import YOLO; \
+#   YOLO('models/football.pt').export(format='openvino', dynamic=True)"
 MODEL_PATH = "models/football.pt"
+OPENVINO_PATH = "models/football_openvino_model"
 FALLBACK_MODEL_PATH = "yolov8n.pt"
 
-IMG_SIZE = 1280                  # YOLO inference size (bigger = better small objects, slower)
+# Inference size. The ball is small and resolution-hungry: ball recall is ~69%
+# at 1280 but ~42% at 960. Players survive low res fine. 1280 = accurate/slower,
+# 960 = faster/live (Kalman interpolation cushions the lost ball frames).
+IMG_SIZE = 1280
 DETECT_CONF = 0.15               # confidence threshold for the detection pass
 
 # Tiling: only needed for the generic COCO model, which can't see a small ball
@@ -47,6 +56,15 @@ MAX_JUMP_PER_FRAME = 150   # px the ball can plausibly move in ONE processed fra
 MAX_COAST = 15             # after this many misses, allow re-acquiring anywhere
 BALL_MAX_INTERP = 8        # max consecutive frames to Kalman-interpolate through a gap
 BALL_TRAIL_LEN = 25        # how many past ball points to draw as a trail
+
+# Targeted crop search: when the full-frame pass misses the ball, zoom into a
+# window around the Kalman-predicted position and re-detect there. The ball
+# fills more pixels in the crop, so recall goes up. Only one small extra
+# inference, and only on frames that missed -- cheap, especially on GPU.
+BALL_CROP_SEARCH = True
+BALL_CROP_HALF = 160       # half-size of the search window (px) around the prediction
+BALL_CROP_IMGSZ = 640      # inference size for the crop (upscales the small ball)
+BALL_CROP_CONF = 0.10      # lower conf ok -- the ball is clearer when zoomed in
 
 # Ball candidate scoring: prefer the blob near a player's feet / near where the
 # ball just was, not just the most confident blob (kills penalty-spot false

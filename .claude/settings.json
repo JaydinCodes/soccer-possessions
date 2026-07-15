@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/Scripts/python.exe -c ' *)",
+      "Bash(venv/Scripts/python.exe run.py --source data/match.mp4 --no-show)",
+      "Bash(venv/Scripts/python.exe -m py_compile build_video.py src/*.py run.py app.py)"
+    ]
+  }
+}

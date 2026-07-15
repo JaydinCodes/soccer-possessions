@@ -1,10 +1,10 @@
 {
   "summary": {
-    "team_a_pct": 45.1,
-    "team_b_pct": 54.9,
-    "team_a_frames": 23,
-    "team_b_frames": 28,
-    "loose_frames": 321
+    "team_a_pct": 46.4,
+    "team_b_pct": 53.6,
+    "team_a_frames": 26,
+    "team_b_frames": 30,
+    "loose_frames": 316
   },
   "timeline": [
     {
@@ -413,15 +413,15 @@
     },
     {
       "frame": 210,
-      "team": null
+      "team": 0
     },
     {
       "frame": 212,
-      "team": null
+      "team": 0
     },
     {
       "frame": 214,
-      "team": null
+      "team": 0
     },
     {
       "frame": 216,
@@ -1489,11 +1489,11 @@
     },
     {
       "frame": 748,
-      "team": null
+      "team": 1
     },
     {
       "frame": 750,
-      "team": null
+      "team": 1
     }
   ],
   "meta": {

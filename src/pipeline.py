@@ -52,27 +52,50 @@ def _write_json(path, summary, timeline, frames_processed, teams_ready):
             os.remove(tmp)
 
 
-def run(source, show=True, save_path=None, output_json=None):
+def run(source, show=True, save_path=None, output_json=None,
+        fast=False, imgsz=None, process_every=None):
     """Process a video source end to end.
 
-    source      : file path, phone stream URL, or webcam index ("0").
-    show        : open an OpenCV preview window (press q to quit).
-    save_path   : optional path to write the annotated video.
-    output_json : where to write live possession stats (defaults to config).
+    source        : file path, phone stream URL, or webcam index ("0").
+    show          : open an OpenCV preview window (press q to quit).
+    save_path     : optional path to write the annotated video.
+    output_json   : where to write live possession stats (defaults to config).
+    fast          : live preset -- smaller imgsz + skip more frames for higher fps.
+    imgsz         : override inference size (else 960 in fast mode, config.IMG_SIZE otherwise).
+    process_every : override frame-skip (else 3 in fast mode, config.PROCESS_EVERY otherwise).
     """
     import cv2
+    import torch
+
+    cuda = torch.cuda.is_available()
+    if not cuda:
+        torch.set_num_threads(os.cpu_count() or 4)   # CPU: use all cores
 
     output_json = output_json or config.OUTPUT_JSON
+    imgsz = imgsz or (960 if fast else config.IMG_SIZE)
+    process_every = process_every or (3 if fast else config.PROCESS_EVERY)
 
-    model_path = config.MODEL_PATH
-    if not os.path.exists(model_path):
-        # Fine-tuned model not present -- fall back to generic COCO + tiling.
-        print(f"[warn] {model_path} not found, falling back to "
-              f"{config.FALLBACK_MODEL_PATH} with tiling.")
-        model_path = config.FALLBACK_MODEL_PATH
-        detector = detection.Detector(model_path, use_tiling=True)
+    # Backend priority:
+    #   1. NVIDIA GPU  -> PyTorch on CUDA (fastest by far; runs full res real-time)
+    #   2. no GPU, small size -> OpenVINO on CPU (~6x the CPU PyTorch speed @ 960)
+    #   3. no GPU, full res   -> PyTorch on CPU
+    if cuda and os.path.exists(config.MODEL_PATH):
+        detector = detection.Detector(config.MODEL_PATH, imgsz=imgsz, device=0)
+        backend = f"CUDA GPU ({torch.cuda.get_device_name(0)})"
+    elif (not cuda) and os.path.isdir(config.OPENVINO_PATH) and imgsz <= 1024:
+        detector = detection.Detector(config.OPENVINO_PATH, imgsz=imgsz)
+        backend = "OpenVINO (CPU)"
+    elif os.path.exists(config.MODEL_PATH):
+        detector = detection.Detector(config.MODEL_PATH, imgsz=imgsz, device="cpu")
+        backend = "PyTorch (CPU)"
     else:
-        detector = detection.Detector(model_path)
+        print(f"[warn] {config.MODEL_PATH} not found, falling back to "
+              f"{config.FALLBACK_MODEL_PATH} with tiling.")
+        detector = detection.Detector(config.FALLBACK_MODEL_PATH, use_tiling=True,
+                                      imgsz=imgsz, device=0 if cuda else "cpu")
+        backend = "PyTorch (fallback)"
+    print(f"[info] {backend} | imgsz={imgsz} | process_every={process_every}"
+          f"{' | FAST' if fast else ''}")
 
     cap = _open_source(source)
     if not cap.isOpened():
@@ -95,7 +118,7 @@ def run(source, show=True, save_path=None, output_json=None):
             if not ok:
                 break
             frame_index += 1
-            if frame_index % config.PROCESS_EVERY != 0:
+            if frame_index % process_every != 0:
                 continue
             processed += 1
 
@@ -140,8 +163,14 @@ def run(source, show=True, save_path=None, output_json=None):
                     player_points.append((feet, team, height))
             feet_points = [feet for feet, _team, _h in player_points]
 
-            # -- ball: pick the candidate that fits the game (near a player's
-            # feet / near the last position), then apply the jump filter.
+            # -- ball: if the full-frame pass missed but we know roughly where
+            # the ball should be, zoom in around the prediction and try again.
+            if not ball_candidates and config.BALL_CROP_SEARCH:
+                ball_candidates = detector.detect_ball_crop(
+                    frame, ball_tracker.predicted_center())
+
+            # pick the candidate that fits the game (near a player's feet / near
+            # the last position), then apply the Kalman jump filter.
             chosen = detection.select_ball(ball_candidates, feet_points,
                                            ball_tracker.last_point)
             ball_point, _interpolated = ball_tracker.update(chosen)

@@ -52,12 +52,14 @@ class Detector:
     high-confidence person detections only, and keep the ball on predict.
     """
 
-    def __init__(self, model_path, use_tiling=None):
+    def __init__(self, model_path, use_tiling=None, imgsz=None, device=None):
         self.model = YOLO(model_path)
         (self.ball_ids, self.goalkeeper_ids,
          self.player_ids, self.referee_ids) = _roles_from_names(self.model.names)
         self.person_ids = self.goalkeeper_ids | self.player_ids | self.referee_ids
         self.use_tiling = config.USE_TILING if use_tiling is None else use_tiling
+        self.imgsz = imgsz or config.IMG_SIZE
+        self.device = device        # e.g. 0 for GPU, "cpu"; None lets YOLO decide
 
     def role_of(self, class_id):
         """Human-readable role for a detected class id."""
@@ -75,8 +77,13 @@ class Detector:
                           each track can vote on its role over time.
         ball_candidates : list of (point, conf)
         """
+        # Pass classes explicitly every call. Ultralytics remembers the last
+        # `classes` filter on its predictor, so the ball-only crop search would
+        # otherwise leak into this pass and drop all the players.
         result = self.model(
-            frame, conf=config.DETECT_CONF, imgsz=config.IMG_SIZE, verbose=False,
+            frame, conf=config.DETECT_CONF, imgsz=self.imgsz,
+            classes=sorted(self.ball_ids | self.person_ids),
+            device=self.device, verbose=False,
         )[0]
         det = sv.Detections.from_ultralytics(result)
 
@@ -92,6 +99,36 @@ class Detector:
         if not ball_candidates and self.use_tiling:
             ball_candidates = self._detect_ball_tiled(frame)
         return persons, ball_candidates
+
+    def detect_ball_crop(self, frame, center):
+        """Zoom into a window around `center` and detect the ball there.
+
+        Used as a fallback when the full-frame pass missed the ball: cropping to
+        a small window and re-running at BALL_CROP_IMGSZ effectively magnifies
+        the ball, so the detector that couldn't see it full-frame often can now.
+        Returns candidates in FULL-frame coordinates.
+        """
+        if center is None:
+            return []
+        h, w = frame.shape[:2]
+        half = config.BALL_CROP_HALF
+        cx, cy = int(center[0]), int(center[1])
+        x1, y1 = max(0, cx - half), max(0, cy - half)
+        x2, y2 = min(w, cx + half), min(h, cy + half)
+        crop = frame[y1:y2, x1:x2]
+        if crop.size == 0:
+            return []
+
+        res = self.model(
+            crop, conf=config.BALL_CROP_CONF, imgsz=config.BALL_CROP_IMGSZ,
+            classes=sorted(self.ball_ids), device=self.device, verbose=False,
+        )[0]
+        candidates = []
+        for box in res.boxes:
+            bx1, by1, bx2, by2 = map(float, box.xyxy[0])
+            pt = ((bx1 + bx2) / 2.0 + x1, (by1 + by2) / 2.0 + y1)
+            candidates.append((pt, float(box.conf[0])))
+        return candidates
 
     def _detect_ball_tiled(self, frame):
         """Slice the frame into tiles and return EVERY ball candidate found."""
@@ -189,6 +226,14 @@ class BallTracker:
         self.initialized = True
         self.misses = 0
         self.last_point = pt
+
+    def predicted_center(self):
+        """Where the ball is expected THIS frame (position + velocity), without
+        advancing the filter. Best crop centre for the targeted ball search."""
+        if not self.initialized:
+            return self.last_point
+        s = self.kf.statePost
+        return (float(s[0, 0] + s[2, 0]), float(s[1, 0] + s[3, 0]))
 
     def update(self, candidate):
         """Feed one raw candidate point (or None). Return (point, interpolated)."""

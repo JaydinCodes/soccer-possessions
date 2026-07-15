@@ -29,9 +29,15 @@ def main():
     p.add_argument("--no-show", action="store_true", help="don't open a preview window")
     p.add_argument("--save", default=None, help="path to save an annotated video")
     p.add_argument("--json", default=None, help="override output JSON path")
+    p.add_argument("--fast", action="store_true",
+                   help="live preset: OpenVINO @ 960 + skip more frames (~6x faster, "
+                        "lower ball recall)")
+    p.add_argument("--imgsz", type=int, default=None, help="override inference size")
+    p.add_argument("--every", type=int, default=None, help="process every Nth frame")
     args = p.parse_args()
 
-    run(args.source, show=not args.no_show, save_path=args.save, output_json=args.json)
+    run(args.source, show=not args.no_show, save_path=args.save, output_json=args.json,
+        fast=args.fast, imgsz=args.imgsz, process_every=args.every)
 
 
 if __name__ == "__main__":
