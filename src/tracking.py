@@ -78,6 +78,14 @@ class PlayerTracker:
             return None
         return votes.most_common(1)[0][0]
 
+    def is_settled(self, track_id):
+        """True once we've read this track enough to stop re-classifying it.
+
+        Lets the live loop skip the expensive per-frame jersey-colour extraction
+        for players whose team/role is already locked in.
+        """
+        return self.team_reads.get(track_id, 0) >= config.TEAM_SETTLE_READS
+
     def effective_role(self, track_id, model_role):
         """Final role, applying the referee-by-colour heuristic.
 

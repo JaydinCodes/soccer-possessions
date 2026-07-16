@@ -145,12 +145,15 @@ def run(source, show=True, save_path=None, output_json=None,
             for t in tracks:
                 box, model_role, tid = t["xyxy"], t["role"], t["id"]
                 team = None
-                if model_role != "referee":
+                # Only read jersey colour while the track is still new; once its
+                # team/role is settled we reuse the voted result (live speed-up).
+                if model_role != "referee" and not player_tracker.is_settled(tid):
                     feat = jersey_feature(frame, box)
                     if feat is not None and classifier.ready:
                         predicted, confident = classifier.predict(feat)
                         is_hivis = teams.hivis_fraction(frame, box) >= config.HIVIS_MIN_FRAC
                         player_tracker.observe_team(tid, predicted, confident, is_hivis)
+                if model_role != "referee":
                     team = player_tracker.team_of(tid)   # stable, voted over time
 
                 # Heuristic may relabel a hi-vis "player" as a referee.

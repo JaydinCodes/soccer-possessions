@@ -100,6 +100,11 @@ REF_MIN_OBS = 8            # reads before the heuristics may fire
 REF_MAX_TEAM_FRAC = 0.2    # signal 1: <20% of reads matched a team -> referee
 REF_HIVIS_FRAC = 0.5       # signal 2: >50% of reads were hi-vis -> referee
 
+# Live speed: once a track has been colour-read this many times, lock in its
+# team/role and stop re-extracting jersey colour every frame (big CPU saving for
+# the live loop -- the expensive HSV work only runs while a track is new).
+TEAM_SETTLE_READS = 15
+
 # Hi-vis mask: bright, saturated yellow-green (fluorescent official kit).
 HIVIS_LOWER = (25, 120, 170)
 HIVIS_UPPER = (50, 255, 255)
